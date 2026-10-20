@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+  <?!= include('Style'); ?>
+</head>
+<body>
+
+<!-- ================================================================ -->
+<!-- APP SHELL: SIDEBAR + MAIN CONTENT                                -->
+<!-- ================================================================ -->
+<div id="appShell" class="d-none">
+
+  <!-- ==================== SIDEBAR KIRI ==================== -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-header">
+      <i class="fas fa-building-shield me-2"></i>
+      <span class="fw-bold">Monitoring Terpadu</span>
+    </div>
+
+    <div class="sidebar-user">
+      <i class="fas fa-user-circle me-2"></i>
+      <strong id="loggedUsernameSidebar">-</strong>
+    </div>
+
+    <nav class="sidebar-nav">
+      <!-- DASHBOARD -->
+      <a href="#" class="sidebar-link" data-view="dashboard" onclick="switchView('dashboard'); return false;">
+        <i class="fas fa-home"></i> Dashboard
+      </a>
+
+      <!-- PREMISES -->
+      <div class="sidebar-group" id="groupPremises">
+        <div class="sidebar-group-title" onclick="toggleSidebarGroup('groupPremises')">
+          <i class="fas fa-clipboard-list"></i> Premises
+          <i class="fas fa-chevron-down ms-auto group-arrow"></i>
+        </div>
+        <div class="sidebar-group-items open">
+          <a href="#" class="sidebar-link" data-view="visit" onclick="switchView('visit'); return false;">
+            <i class="fas fa-list-check"></i> Data Kunjungan
+          </a>
+          <div class="sidebar-subgroup" id="subPremisesKelolaan">
+            <div class="sidebar-subgroup-title" onclick="toggleSidebarGroup('subPremisesKelolaan')">
+              <i class="fas fa-database"></i> Data Kelolaan
+              <i class="fas fa-chevron-down ms-auto group-arrow"></i>
+            </div>
+            <div class="sidebar-subgroup-items open">
+              <a href="#" class="sidebar-link" data-view="kelolaan"
+                 onclick="switchView('kelolaan'); switchKelolaanSubMenu('edit'); return false;">
+                <i class="fas fa-pen-to-square"></i> Edit/Delete
+              </a>
+              <a href="#" class="sidebar-link" data-view="kelolaan"
+                 onclick="switchView('kelolaan'); switchKelolaanSubMenu('tambah'); return false;">
+                <i class="fas fa-plus-circle"></i> Tambah Data
+              </a>
+            </div>
+          </div>
+          <a href="#" class="sidebar-link" data-view="upload" onclick="switchView('upload'); return false;">
+            <i class="fas fa-cloud-download-alt"></i> Upload/Download
+          </a>
+        </div>
+      </div>
+
+      <!-- SEWA -->
+      <div class="sidebar-group" id="groupSewa">
+        <div class="sidebar-group-title" onclick="toggleSidebarGroup('groupSewa')">
+          <i class="fas fa-file-invoice-dollar"></i> Sewa
+          <i class="fas fa-chevron-down ms-auto group-arrow"></i>
+        </div>
+        <div class="sidebar-group-items open">
+          <a href="#" class="sidebar-link" data-view="sewa-data" onclick="switchView('sewa-data'); return false;">
+            <i class="fas fa-table"></i> Data Sewa
+          </a>
+          <a href="#" class="sidebar-link" data-view="rekap" onclick="switchView('rekap'); return false;">
+            <i class="fas fa-chart-pie"></i> Rekapitulasi
+          </a>
+          <a href="#" class="sidebar-link" data-view="kerjasama" onclick="switchView('kerjasama'); return false;">
+            <i class="fas fa-handshake"></i> Kerjasama
+          </a>
+          <a href="#" class="sidebar-link" data-view="perpanjangan" onclick="switchView('perpanjangan'); return false;">
+            <i class="fas fa-sync-alt"></i> Perpanjangan
+          </a>
+          <a href="#" class="sidebar-link" data-view="edit-delete-sewa" onclick="switchView('edit-delete-sewa'); return false;">
+            <i class="fas fa-edit"></i> Edit/Delete Sewa
+          </a>
+          <a href="#" class="sidebar-link" data-view="tambah-sewa" onclick="switchView('tambah-sewa'); return false;">
+            <i class="fas fa-plus-circle"></i> Tambah Sewa
+          </a>
+          <a href="#" class="sidebar-link" data-view="ganti-tid" onclick="switchView('ganti-tid'); return false;">
+            <i class="fas fa-exchange-alt"></i> Ganti Terminal ID
+          </a>
+        </div>
+      </div>
+
+      <!-- AKUN -->
+      <div class="sidebar-group" id="groupAkun">
+        <div class="sidebar-group-title" onclick="toggleSidebarGroup('groupAkun')">
+          <i class="fas fa-user-cog"></i> Account
+          <i class="fas fa-chevron-down ms-auto group-arrow"></i>
+        </div>
+        <div class="sidebar-group-items open">
+          <a href="#" class="sidebar-link" onclick="openChangePasswordModal(); return false;">
+            <i class="fas fa-key"></i> Change Password
+          </a>
+          <a href="#" class="sidebar-link text-danger" onclick="logoutUser(); return false;">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </a>
+        </div>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main id="mainContent" class="main-content">
+
+    <!-- ===== VIEW DASHBOARD ===== -->
+    <div id="dashboardView" class="container-fluid py-2 d-none">
+
+      <!-- BAGIAN 1: DASHBOARD SURVEY -->
+      <div id="surveyDashboardSection">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="fw-bold text-dark mb-0">Dashboard Survey</h3>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4 bg-light">
+          <div class="card-body py-2">
+            <div class="row g-2 align-items-center">
+              <div class="col-auto"><label class="fw-bold fs-6">Bulan :</label></div>
+              <div class="col-auto">
+                <select id="dashFilterMonth" class="form-select form-select-sm" onchange="onDashboardPeriodChange()">
+                  <option value="1">Januari</option>
+                  <option value="2">Februari</option>
+                  <option value="3">Maret</option>
+                  <option value="4">April</option>
+                  <option value="5">Mei</option>
+                  <option value="6">Juni</option>
+                  <option value="7">Juli</option>
+                  <option value="8">Agustus</option>
+                  <option value="9">September</option>
+                  <option value="10">Oktober</option>
+                  <option value="11">November</option>
+                  <option value="12">Desember</option>
+                </select>
+              </div>
+              <div class="col-auto ms-2"><label class="fw-bold fs-6">Tahun :</label></div>
+              <div class="col-auto">
+                <select id="dashFilterYear" class="form-select form-select-sm" onchange="onDashboardPeriodChange()">
+                  <option value="2025">2025</option>
+                  <option value="2026">2026</option>
+                  <option value="2027">2027</option>
+                </select>
+              </div>
+              <div class="col-auto ms-3 d-none" id="containerFilterRo"><label class="fw-bold fs-6">RO:</label></div>
+              <div class="col-auto d-none" id="containerSelectRo">
+                <select id="dashFilterRo" class="form-select form-select-sm" onchange="onRoFilterChange()"></select>
+              </div>
+              <div class="col-auto ms-2 d-none" id="containerFilterKc"><label class="fw-bold fs-6">KC Supervisi:</label></div>
+              <div class="col-auto d-none" id="containerSelectKc">
+                <select id="dashFilterKc" class="form-select form-select-sm" onchange="loadDashboardData()"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-3">
+            <div class="card shadow-sm border-0 h-100 rounded-4">
+              <div class="card-body text-center p-3">
+                <h6 class="text-info fw-bold">ATM & CRM</h6>
+                <h2 class="fw-bold text-dark my-1" id="cardTotalTerminals">0</h2>
+                <p class="text-muted small mb-2">ATM <span id="cardTotalAtm">0</span> | CRM <span id="cardTotalCrm">0</span></p>
+                <div class="bg-light rounded p-2 mb-2 text-start">
+                  <div class="d-flex justify-content-between small fw-bold">
+                    <span><i class="fas fa-credit-card text-primary me-1"></i> ATM</span>
+                    <span id="cardPctAtm">0.00%</span>
+                  </div>
+                  <div class="d-flex justify-content-between small mt-1">
+                    <span class="text-success"><i class="fas fa-check-square me-1"></i> <span id="cardVisitedAtm">0</span></span>
+                    <span class="text-danger"><i class="fas fa-times-circle me-1"></i> <span id="cardUnvisitedAtm">0</span></span>
+                  </div>
+                </div>
+                <div class="bg-light rounded p-2 text-start">
+                  <div class="d-flex justify-content-between small fw-bold">
+                    <span><i class="fas fa-money-bill-wave text-info me-1"></i> CRM</span>
+                    <span id="cardPctCrm">0.00%</span>
+                  </div>
+                  <div class="d-flex justify-content-between small mt-1">
+                    <span class="text-success"><i class="fas fa-check-square me-1"></i> <span id="cardVisitedCrm">0</span></span>
+                    <span class="text-danger"><i class="fas fa-times-circle me-1"></i> <span id="cardUnvisitedCrm">0</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-2">
+            <div class="card shadow-sm border-warning h-100 rounded-4">
+              <div class="card-body text-center p-3 d-flex flex-column justify-content-center">
+                <h6 class="text-warning fw-bold">PROBLEM</h6>
+                <span class="small text-warning fw-bold mb-1">Terminal</span>
+                <h1 class="fw-bold text-warning my-2" id="cardProblemCount">0</h1>
+                <span class="small text-muted">Klik untuk verifikasi</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-2">
+            <div class="card shadow-sm border-success h-100 rounded-4">
+              <div class="card-body text-center p-3 d-flex flex-column justify-content-center">
+                <h6 class="text-success fw-bold">NILAI ATM</h6>
+                <h1 class="fw-bold text-success my-3" id="cardNilaiAtm">0.00%</h1>
+                <span class="small text-muted">Performance</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-2">
+            <div class="card shadow-sm border-warning h-100 rounded-4">
+              <div class="card-body text-center p-3 d-flex flex-column justify-content-center">
+                <h6 class="text-warning fw-bold">NILAI CRM</h6>
+                <h1 class="fw-bold text-warning my-3" id="cardNilaiCrm">0.00%</h1>
+                <span class="small text-muted">Performance</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="card shadow-sm border-info h-100 rounded-4">
+              <div class="card-body text-center p-3 d-flex flex-column justify-content-center">
+                <h6 class="text-info fw-bold"><i class="fas fa-trophy me-1"></i> TOTAL NILAI</h6>
+                <h1 class="fw-bold text-info my-3" id="cardTotalNilai">0.00%</h1>
+                <span class="small text-muted">Overall Score</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BAGIAN 2: DASHBOARD SEWA -->
+      <div id="sewaDashboardSection" class="d-none">
+        <hr class="my-4" style="border-top: 3px solid #e2e8f0;">
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h3 class="fw-bold text-dark mb-0">📊 Dashboard Sewa ATM/CRM</h3>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- FILTER + CARD TOTAL DALAM 1 BARIS                            -->
+        <!-- ============================================================ -->
+        <div class="card shadow-sm border-0 mb-3 bg-light">
+          <div class="card-body py-2">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+
+              <div class="col-auto" id="filterRegionalDiv" style="display:none;">
+                <select id="filterRegional" class="form-select form-select-sm">
+                  <option value="Semua">Semua Regional Office</option>
+                </select>
+              </div>
+
+              <div class="col-auto" id="filterKCDiv" style="display:none;">
+                <select id="filterKC" class="form-select form-select-sm">
+                  <option value="Semua">Semua KC Supervisi</option>
+                </select>
+              </div>
+
+              <div class="col-auto">
+                <select id="filterJatuhTempo" class="form-select form-select-sm">
+                  <option value="Semua">Semua Jatuh Tempo</option>
+                  <option value="3 bulan">3 bulan</option>
+                  <option value="2 bulan">2 bulan</option>
+                  <option value="1 bulan">1 bulan</option>
+                  <option value="Expired">Expired</option>
+                  <option value="Belum ada tanggal">Belum ada tanggal</option>
+                  <option value="Belum ada Nominal">Belum ada Nominal</option>
+                  <option value="Free">Free</option>
+                </select>
+              </div>
+
+              <div class="col-auto">
+                <select id="filterTahun" class="form-select form-select-sm">
+                  <option value="Semua">Semua Tahun</option>
+                </select>
+              </div>
+
+              <!-- === SPACER: dorong card ke kanan === -->
+              <div class="ms-auto"></div>
+
+              <!-- === CARD TOTAL TERMINAL ID === -->
+              <div class="card shadow-sm border-0 rounded-3"
+                   style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; min-width: 140px;">
+                <div class="card-body text-center py-2 px-3">
+                  <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; opacity: 0.9; white-space: nowrap;">
+                    Total Terminal ID
+                  </div>
+                  <div style="font-size: 1.4rem; font-weight: 800; line-height: 1.2;" id="totalTerminals">0</div>
+                </div>
+              </div>
+
+              <!-- === CARD TOTAL SEWA === -->
+              <div class="card shadow-sm border-0 rounded-3"
+                   style="background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%); color: white; min-width: 160px;">
+                <div class="card-body text-center py-2 px-3">
+                  <div style="font-size: 0.65rem; font-weight: 600; text-transform: uppercase; opacity: 0.9; white-space: nowrap;">
+                    TOTAL SEWA
+                  </div>
+                  <div style="font-size: 1.4rem; font-weight: 800; line-height: 1.2; white-space: nowrap;" id="totalNominal">Rp 0</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- DISTRIBUSI MASA JATUH TEMPO                                  -->
+        <!-- ============================================================ -->
+        <h5 class="fw-bold text-dark mb-3">📈 Distribusi Masa Jatuh Tempo Sewa</h5>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="dist3Bulan" style="cursor:pointer; border-top: 4px solid #2563eb;">
+              <div style="font-size: 2rem; font-weight: 800; color: #2563eb;" id="dist3BulanCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">3 Bulan Lagi</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="dist2Bulan" style="cursor:pointer; border-top: 4px solid #d97706;">
+              <div style="font-size: 2rem; font-weight: 800; color: #d97706;" id="dist2BulanCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">2 Bulan Lagi</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="dist1Bulan" style="cursor:pointer; border-top: 4px solid #ea580c;">
+              <div style="font-size: 2rem; font-weight: 800; color: #ea580c;" id="dist1BulanCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">1 Bulan Lagi</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="distExpired" style="cursor:pointer; border-top: 4px solid #dc2626;">
+              <div style="font-size: 2rem; font-weight: 800; color: #dc2626;" id="distExpiredCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Expired</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="distNotanggal" style="cursor:pointer; border-top: 4px solid #94a3b8;">
+              <div style="font-size: 2rem; font-weight: 800; color: #64748b;" id="distNotanggalCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Tidak Ada Tanggal</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="distBelumAdaNominal" style="cursor:pointer; border-top: 4px solid #8b5cf6;">
+              <div style="font-size: 2rem; font-weight: 800; color: #8b5cf6;" id="distBelumAdaNominalCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Belum Ada Nominal</div>
+            </div>
+          </div>
+
+          <div class="col-6 col-md-4 col-lg">
+            <div class="card text-center p-3 shadow-sm" id="distFree" style="cursor:pointer; border-top: 4px solid #22c55e;">
+              <div style="font-size: 2rem; font-weight: 800; color: #22c55e;" id="distFreeCount">0</div>
+              <div style="font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Free</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW DATA KUNJUNGAN ===== -->
+    <div id="visitView" class="container-fluid px-4 survey-container d-none">
+      <div class="card p-4 shadow-sm border-0 mb-4 bg-white rounded-3">
+        <div class="row g-2 align-items-end mt-2 border-top pt-3">
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-calendar-days me-1"></i> Bulan :
+            </label>
+            <select id="visitFilterMonth" class="form-select form-select-sm bg-light py-2" onchange="onVisitPeriodChange()">
+              <option value="1">Januari</option><option value="2">Februari</option><option value="3">Maret</option>
+              <option value="4">April</option><option value="5">Mei</option><option value="6">Juni</option>
+              <option value="7">Juli</option><option value="8">Agustus</option><option value="9">September</option>
+              <option value="10">Oktober</option><option value="11">November</option><option value="12">Desember</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-calendar me-1"></i> Tahun :
+            </label>
+            <select id="visitFilterYear" class="form-select form-select-sm bg-light py-2" onchange="onVisitPeriodChange()">
+              <option value="2026">2026</option><option value="2027">2027</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-2">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-toggle-on me-1"></i> Status :
+            </label>
+            <select id="filterStatus" class="form-select form-select-sm bg-light py-2" onchange="applyClientFilters()">
+              <option value="">-- Semua Status --</option>
+              <option value="SUDAH">SUDAH</option>
+              <option value="BELUM">BELUM</option>
+            </select>
+          </div>
+          <!-- SUDAH DIKUNJUNGI -->
+          <div class="col-6 col-md-auto">
+            <div class="p-2 border rounded bg-success-subtle border-success-subtle text-success text-center" style="min-width: 100px;">
+              <span class="small fw-bold d-block">
+                <i class="fas fa-circle-check me-1"></i> Sudah :
+              </span>
+              <span id="summaryTotalSudah" class="fs-5 fw-bold">0</span>
+            </div>
+          </div>
+
+          <!-- BELUM DIKUNJUNGI -->
+          <div class="col-6 col-md-auto">
+            <div class="p-2 border rounded bg-danger-subtle border-danger-subtle text-danger text-center" style="min-width: 100px;">
+              <span class="small fw-bold d-block">
+                <i class="fas fa-circle-xmark me-1"></i> Belum :
+              </span>
+              <span id="summaryTotalBelum" class="fs-5 fw-bold">0</span>
+            </div>
+          </div>
+
+          <!-- TOTAL FILTERED -->
+          <div class="col-6 col-md-auto">
+            <div class="p-2 border rounded bg-light text-center" style="min-width: 100px;">
+              <span class="small fw-bold text-muted d-block">
+                <i class="fas fa-sigma me-1"></i> Total :
+              </span>
+              <span id="summaryTotalFiltered" class="fs-5 fw-bold text-dark">0</span>
+            </div>
+          </div>
+          <div class="col-6 col-md-3 d-none" id="containerVisitFilterKlCro">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-user-gear me-1"></i> Kantor Layanan :
+            </label>
+            <select id="filterKlCro" class="form-select form-select-sm bg-light py-2" onchange="applyClientFilters()">
+              <option value="">-- Semua Kantor Layanan --</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3 d-none" id="containerVisitFilterRo">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-building me-1"></i> Regional Office :
+            </label>
+            <select id="visitFilterRo" class="form-select form-select-sm bg-light py-2" onchange="onVisitRoFilterChange()">
+              <option value="">-- Semua Regional Office --</option>
+            </select>
+          </div>
+          <div class="col-6 col-md-3 d-none" id="containerVisitFilterKc">
+            <label class="form-label small fw-bold text-secondary mb-1">
+              <i class="fas fa-sitemap me-1"></i> KC Supervisi :
+            </label>
+            <select id="visitFilterKc" class="form-select form-select-sm bg-light py-2" onchange="applyClientFilters()">
+              <option value="">-- Semua KC Supervisi --</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-3 ms-auto text-end">
+            <div class="d-flex gap-2">
+              <button type="button" id="visitRefreshBtn" class="btn btn-primary fw-bold text-white px-3 py-2 shadow-sm d-none"
+                    onclick="refreshVisitData()" title="Refresh data dari server">
+                <i class="fas fa-sync-alt me-1"></i> Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white mb-5">
+        <h4 class="text-center text-dark fw-bold mb-3" id="tableTitleLabel">Memuat Laporan Kelolaan...</h4>
+        <div class="table-responsive style-scrollbar" style="max-height: 600px; overflow-x: auto;">
+          <table class="table table-striped table-bordered align-middle text-center mb-0" id="visitDataTable">
+            <thead class="table-dark text-nowrap position-sticky top-0" style="z-index: 10;">
+              <tr id="visitTableHeader"></tr>
+            </thead>
+            <tbody id="visitTableBody">
+              <tr>
+                <td colspan="19" class="py-5 text-muted fw-bold">
+                  <i class="fas fa-lock fa-2x mb-3 d-block text-secondary"></i>
+                  Silakan login vendor terlebih dahulu untuk menampilkan data.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 pt-2 border-top gap-2">
+          <div class="text-muted small">
+            * Menampilkan <span id="visibleRowCountLabel" class="fw-bold text-primary">0</span> data per halaman dari total
+            <span id="totalRowCountLabel" class="fw-bold">0</span> baris kelolaan.
+          </div>
+          <nav aria-label="Navigasi Halaman">
+            <ul class="pagination pagination-sm m-0 justify-content-center" id="paginationControls"></ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+<!-- ===== VIEW DATA KELOLAAN ===== -->
+<div id="kelolaanView" class="container-fluid px-4 survey-container d-none">
+  <div class="card p-4 shadow-sm border-0 mb-4 bg-white rounded-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mb-3">
+      <div>
+        <h2 class="page-title mb-1 text-center text-md-start" id="kelolaanPageTitle">
+          <i class="fas fa-database text-warning me-2"></i>Data Kelolaan Vendor
+        </h2>
+        <p class="text-muted text-center text-md-start mb-0" id="kelolaanSubTitle">
+          Halaman akses khusus Vendor Kelolaan:
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- KONTEN A: EDIT / DELETE                                       -->
+    <!-- ============================================================ -->
+    <div id="kelolaanEditPane">
+      <div class="row g-3 my-2 border-top pt-3 text-center text-md-start">
+        <div class="col-6 col-md-4">
+          <div class="p-2 border rounded bg-light">
+            <span class="small fw-bold text-muted d-block"><i class="fas fa-sigma me-1"></i> Total Data :</span>
+            <span id="kelolaanTotalData" class="fs-4 fw-bold text-dark">0</span>
+          </div>
+        </div>
+        <div class="col-6 col-md-4">
+          <div class="p-2 border rounded bg-info-subtle border-info-subtle text-info">
+            <span class="small fw-bold d-block"><i class="fas fa-pen-to-square me-1"></i> Dapat Diedit :</span>
+            <span id="kelolaanTotalEditable" class="fs-4 fw-bold">0</span>
+          </div>
+        </div>
+        <div class="col-12 col-md-4">
+          <div class="p-2 border rounded bg-warning-subtle border-warning-subtle text-warning-emphasis">
+            <span class="small fw-bold d-block"><i class="fas fa-filter me-1"></i> Hasil Filter :</span>
+            <span id="kelolaanFilteredCount" class="fs-4 fw-bold">0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-2 align-items-center mt-2 mb-2 border-top pt-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label small fw-bold text-secondary mb-1">
+            <i class="fas fa-search me-1"></i> Cari Terminal ID :
+          </label>
+          <div class="input-group" style="max-width: 280px;">
+            <span class="input-group-text bg-light"><i class="fas fa-barcode text-primary"></i></span>
+            <input type="text" id="kelolaanSearchTid" class="form-control bg-light"
+                   placeholder="Ketik Terminal ID..." autocomplete="off" maxlength="12"
+                   style="width: 140px;" oninput="filterKelolaanByTid()">
+            <button class="btn btn-outline-secondary" type="button" onclick="clearKelolaanSearch()" title="Hapus pencarian">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <small class="text-muted d-block mt-1">
+            <i class="fas fa-info-circle me-1"></i> Ketik sebagian TID untuk filter cepat.
+          </small>
+        </div>
+        <div class="col-12 col-md-6 text-md-end">
+          <button class="btn btn-primary btn-sm fw-bold text-white mt-3 mt-md-0" onclick="loadKelolaanData(true)">
+            <i class="fas fa-sync-alt me-1"></i> Refresh dari Server
+          </button>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 rounded-3 p-3 bg-white mb-5 mt-3">
+        <h4 class="text-center text-dark fw-bold mb-3" id="kelolaanTableTitle">Memuat Data Kelolaan...</h4>
+        <div class="table-responsive style-scrollbar" style="max-height: 600px; overflow-x: auto;">
+          <table class="table table-striped table-bordered align-middle text-center mb-0" id="kelolaanDataTable">
+            <thead class="table-dark text-nowrap position-sticky top-0" style="z-index: 10;">
+              <tr>
+                <th>No.</th><th>Terminal ID</th><th>Regional Office</th><th>RO</th>
+                <th>KC Supervisi</th><th>Lokasi</th><th>Jenis ech</th><th>Status ech</th>
+                <th>Kelolaan</th><th>Kantor Layanan</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="kelolaanTableBody">
+              <tr>
+                <td colspan="11" class="py-5 text-muted fw-bold">
+                  <i class="fas fa-lock fa-2x mb-3 d-block text-secondary"></i>
+                  Silakan login vendor terlebih dahulu untuk menampilkan data.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mt-3 pt-2 border-top gap-2">
+          <div class="text-muted small">
+            * Menampilkan <span id="kelolaanVisibleRowCount" class="fw-bold text-primary">0</span> data per halaman dari total
+            <span id="kelolaanTotalRowCount" class="fw-bold">0</span> baris.
+          </div>
+          <nav aria-label="Navigasi Halaman Kelolaan">
+            <ul class="pagination pagination-sm m-0 justify-content-center" id="kelolaanPaginationControls"></ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- KONTEN B: TAMBAH DATA                                         -->
+    <!-- ============================================================ -->
+    <div id="kelolaanTambahPane" style="display:none;">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mb-3 border-top pt-3">
+        <div>
+          <h4 class="mb-1 text-center text-md-start">
+            <i class="fas fa-plus-circle text-success me-2"></i>Tambah Data Kelolaan
+          </h4>
+          <p class="text-muted text-center text-md-start mb-0 small">
+            Form untuk menambahkan data Terminal ID baru ke sheet <b>tid</b>:
+          </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-secondary btn-sm fw-bold text-white" onclick="resetFormTambahKelolaan()">
+            <i class="fas fa-undo me-1"></i> Reset Form
+          </button>
+        </div>
+      </div>
+
+      <div class="card shadow-sm border-0 rounded-3 p-4 bg-white mb-3">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Terminal ID <span class="text-danger">*</span>:</label>
+            <input type="text" id="addTerminalId" class="form-control" placeholder="Contoh: 12345678" autocomplete="off">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Lokasi:</label>
+            <input type="text" id="addLokasi" class="form-control" placeholder="Contoh: KANTOR PUSAT HKBP PEA" autocomplete="off">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Regional Office :</label>
+            <select id="addRo" class="form-select" onchange="onAddRoChange()">
+              <option value="">-- Pilih Regional Office --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">RO :
+              <small class="text-muted fw-normal">(otomatis dari Regional Office)</small>
+            </label>
+            <input type="text" id="addRoCode" class="form-control bg-light" readonly placeholder="Otomatis terisi...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">KC Supervisi :</label>
+            <select id="addKcSupervisi" class="form-select" onchange="onAddKcChange()">
+              <option value="">-- Pilih KC Supervisi --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">BO :
+              <small class="text-muted fw-normal">(otomatis dari KC)</small>
+            </label>
+            <input type="text" id="addBo" class="form-control bg-light" readonly placeholder="Otomatis terisi...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Jenis e-Channel :</label>
+            <select id="addJenisEch" class="form-select">
+              <option value="ATM">ATM</option>
+              <option value="CRM">CRM</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Status e-Channel :</label>
+            <select id="addStatusEch" class="form-select">
+              <option value="ONSITE">ONSITE</option>
+              <option value="OFFSITE">OFFSITE</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Kelolaan :</label>
+            <select id="addKelolaan" class="form-select" onchange="onAddKelolaanChange()">
+              <option value="">-- Pilih Kelolaan --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">KL/CRO :</label>
+            <select id="addKlCro" class="form-select">
+              <option value="">-- Pilih KL/CRO --</option>
+            </select>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+          <button class="btn btn-secondary" onclick="resetFormTambahKelolaan()">
+            <i class="fas fa-times me-1"></i> Batal
+          </button>
+          <button class="btn btn-success fw-bold" onclick="submitTambahKelolaan()">
+            <i class="fas fa-save me-1"></i> Simpan Data
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== VIEW UPLOAD / DOWNLOAD ===== -->
+<div id="uploadView" class="container-fluid px-4 survey-container d-none">
+  <div class="card p-4 shadow-sm border-0 mb-4 bg-white rounded-3">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 mb-3">
+      <div>
+        <h2 class="page-title mb-1 text-center text-md-start">
+          <i class="fas fa-cloud-download-alt text-primary me-2"></i>Upload / Download Data
+        </h2>
+        <p class="text-muted text-center text-md-start mb-0">
+          Menu khusus Head Office untuk mengunduh data CSV & Foto berdasarkan tanggal.
+        </p>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CARD A: DOWNLOAD DATA RESPONSES (CSV)                         -->
+    <!-- ============================================================ -->
+    <div class="card shadow-sm border-0 rounded-3 p-4 bg-light mb-3">
+      <h5 class="fw-bold text-primary mb-3">
+        <i class="fas fa-file-csv me-2"></i>Download Data Responses (CSV)
+      </h5>
+      <p class="text-muted small mb-3">
+        Pilih tanggal untuk mengunduh data survey pada tanggal tersebut. Kosongkan tanggal untuk mengunduh <b>semua data</b>.
+      </p>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-bold text-muted small">
+            <i class="fas fa-calendar-day me-1"></i> Pilih Tanggal :
+          </label>
+          <input type="date" id="csvExportDate" class="form-control py-2">
+        </div>
+        <div class="col-md-8">
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-success fw-bold px-4 py-2" onclick="downloadCsvData()">
+              <i class="fas fa-download me-2"></i> Download CSV
+            </button>
+            <button class="btn btn-outline-secondary px-3 py-2" onclick="clearCsvDate()">
+              <i class="fas fa-times me-1"></i> Reset Tanggal
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="csvExportInfo" class="mt-3"></div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- CARD B: DOWNLOAD FOTO (ZIP)                                   -->
+    <!-- ============================================================ -->
+    <div class="card shadow-sm border-0 rounded-3 p-4 bg-light mb-3">
+      <h5 class="fw-bold text-warning mb-3">
+        <i class="fas fa-file-archive me-2"></i>Download Foto (ZIP)
+      </h5>
+      <p class="text-muted small mb-3">
+        Foto diambil dari folder Google Drive. ZIP akan dipecah otomatis menjadi beberapa file dengan ukuran maksimal <b>5 MB</b> per file.
+      </p>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label fw-bold text-muted small">
+            <i class="fas fa-calendar-day me-1"></i> Pilih Tanggal Foto :
+          </label>
+          <input type="date" id="fotoExportDate" class="form-control py-2">
+        </div>
+        <div class="col-md-8">
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-warning fw-bold text-dark px-4 py-2" onclick="downloadFotoZip()">
+              <i class="fas fa-file-zipper me-2"></i> Download ZIP
+            </button>
+            <button class="btn btn-outline-secondary px-3 py-2" onclick="clearFotoDate()">
+              <i class="fas fa-times me-1"></i> Reset Tanggal
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="fotoExportInfo" class="mt-3"></div>
+    </div>
+
+  </div>
+</div>
+
+    <!-- ===== VIEW DATA SEWA ===== -->
+    <div id="sewaDataView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <div class="view-header">
+          <div class="view-title"><h2>📋 Daftar Detail Data Sewa</h2></div>
+        </div>
+        <div class="view-filter-summary">
+          <div class="view-filters">
+            <div class="filter-section-compact" style="min-width: 0; flex: 1;">
+              <div class="form-row-compact" style="flex-wrap: nowrap; gap: 0.5rem; align-items: flex-end;">
+                <div class="form-group-compact" id="viewFilterRegionalDiv" style="display:none; min-width: 130px; max-width: 170px;">
+                  <label>🏢 Regional</label>
+                  <select id="viewFilterRegional">
+                    <option value="Semua">Semua</option>
+                  </select>
+                </div>
+                <div class="form-group-compact" id="viewFilterKCDiv" style="display:none; min-width: 110px; max-width: 150px;">
+                  <label>🏧 KC</label>
+                  <select id="viewFilterKC">
+                    <option value="Semua">Semua</option>
+                  </select>
+                </div>
+                <div class="form-group-compact" id="viewFilterJatuhTempoDiv" style="min-width: 120px; max-width: 160px;">
+                  <label>📅 Jatuh Tempo</label>
+                  <select id="viewFilterJatuhTempo">
+                    <option value="Semua" selected>Semua</option>
+                    <option value="3 bulan">3 bulan</option>
+                    <option value="2 bulan">2 bulan</option>
+                    <option value="1 bulan">1 bulan</option>
+                    <option value="Expired">Expired</option>
+                    <option value="Belum ada tanggal">Belum ada tanggal</option>
+                    <option value="Belum ada Nominal">Belum ada Nominal</option>
+                    <option value="Free">Free</option>
+                  </select>
+                </div>
+                <div class="form-group-compact" id="viewFilterTahunDiv" style="min-width: 100px; max-width: 140px;">
+                  <label>📆 Tahun</label>
+                  <select id="viewFilterTahun">
+                    <option value="Semua" selected>Semua</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="view-summary">
+            <div class="card-compact card-indigo" style="min-width: 110px; padding: 0.4rem 1rem;">
+              <div class="card-label">Total Terminal ID</div>
+              <div class="card-number" id="viewTotalTerminals">0</div>
+            </div>
+            <div class="card-compact card-rose" style="min-width: 110px; padding: 0.4rem 1rem;">
+              <div class="card-label">TOTAL SEWA</div>
+              <div class="card-number" id="viewTotalNominal">Rp 0</div>
+            </div>
+            <button id="exportExcelBtn" style="background:#16a34a; width:auto; flex-shrink: 0; padding: 0.4rem 1.2rem; font-size: 0.8rem;">
+              📎 Export ke Excel
+            </button>
+          </div>
+        </div>
+        <div id="exportMsg" class="error-msg" style="display:none; margin-bottom: 1rem;"></div>
+        <div class="table-wrapper" id="viewTable">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW REKAPITULASI ===== -->
+    <div id="rekapitulasiView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <div class="rekap-header">
+          <div class="rekap-title">
+            <h2>📈 Rekapitulasi Data</h2>
+            <div class="sub" id="rekapSubtitle">Ringkasan data per Regional Office / KC Supervisi</div>
+          </div>
+          <div class="rekap-filters" style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+            <div class="form-group-compact" style="min-width:130px;">
+              <label>📅 Jatuh Tempo</label>
+              <select id="rekapFilterJatuhTempo">
+                <option value="Semua">Semua</option>
+                <option value="3 bulan">3 bulan</option>
+                <option value="2 bulan">2 bulan</option>
+                <option value="1 bulan">1 bulan</option>
+                <option value="Expired">Expired</option>
+                <option value="Belum ada tanggal">Belum ada tanggal</option>
+                <option value="Belum ada Nominal">Belum ada Nominal</option>
+                <option value="Free">Free</option>
+              </select>
+            </div>
+            <div class="form-group-compact" style="min-width:100px;">
+              <label>📆 Tahun</label>
+              <select id="rekapFilterTahun">
+                <option value="Semua">Semua</option>
+              </select>
+            </div>
+            <button id="exportRekapExcelBtn"
+                    style="background:#16a34a; color:#fff; border:none; padding:.45rem 1rem; border-radius:10px; font-weight:600; cursor:pointer; font-size:.8rem; white-space:nowrap;">
+              📎 Export Rekap
+            </button>
+          </div>
+        </div>
+        <div id="rekapExportMsg" class="error-msg" style="display:none; margin-bottom: 1rem;"></div>
+        <div class="table-wrapper" id="rekapTable" style="max-height: none; overflow: visible; height: auto;">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW KERJASAMA ===== -->
+    <div id="kerjasamaView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <div class="kerjasama-header">
+          <div class="kerjasama-title"><h2>🤝 Data Kerjasama</h2></div>
+        </div>
+        <div class="kerjasama-filter-summary" id="kerjasamaFilterSummarySection">
+          <div class="kerjasama-filters">
+            <div class="filter-section-compact" style="min-width: 0; flex: 1;">
+              <div class="form-row-compact" style="flex-wrap: nowrap; gap: 0.5rem; align-items: flex-end;">
+                <div class="form-group-compact" style="min-width: 130px; max-width: 170px;">
+                  <label>🤝 Kerjasama</label>
+                  <select id="kerjasamaFilterKerjasama" onchange="applyKerjasamaLocalFilter()">
+                    <option value="Semua">Semua</option>
+                    <option value="Alfamart">Alfamart</option>
+                    <option value="Pegadaian">Pegadaian</option>
+                    <option value="Indomaret">Indomaret</option>
+                  </select>
+                </div>
+                <div class="form-group-compact" style="min-width: 130px; max-width: 170px;">
+                  <label id="kerjasamaFilterRegionalLabel">🏢 Regional</label>
+                  <select id="kerjasamaFilterRegional" onchange="applyKerjasamaLocalFilter()">
+                    <option value="Semua" selected>Semua</option>
+                  </select>
+                </div>
+                <div class="form-group-compact" style="min-width: 110px; max-width: 150px;">
+                  <label id="kerjasamaFilterKCLabel">🏧 KC</label>
+                  <select id="kerjasamaFilterKC" onchange="applyKerjasamaLocalFilter()">
+                    <option value="Semua" selected>Semua</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="kerjasama-summary">
+            <div class="card-compact card-indigo" style="min-width: 130px; padding: 0.4rem 1rem;">
+              <div class="card-label">Total Terminal ID</div>
+              <div class="card-number" id="kerjasamaTotalTerminals">0</div>
+            </div>
+            <div class="card-compact card-rose" style="min-width: 130px; padding: 0.4rem 1rem;">
+              <div class="card-label">TOTAL SEWA</div>
+              <div class="card-number" id="kerjasamaTotalNominal">Rp 0</div>
+            </div>
+            <button id="exportKerjasamaBtn"
+                    style="background:#16a34a; width:auto; flex-shrink: 0; padding: 0.4rem 1.2rem; font-size: 0.8rem;"
+                    onclick="exportKerjasamaToExcel()">
+              📎 Export ke Excel
+            </button>
+          </div>
+        </div>
+
+        <div id="kerjasamaEditContainer"
+             style="display: none; background: #ffffff; padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 0.75rem;">
+            <h3 style="margin: 0; color: #1e3a8a;">
+              ✏️ Edit Data Kerjasama - <span id="editKerjasamaTerminalTitle"></span>
+            </h3>
+            <button onclick="closeKerjasamaEditForm()"
+                    style="background: #64748b; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer;">
+              ✕ Tutup
+            </button>
+          </div>
+          <div id="kerjasamaEditDetailForm"></div>
+        </div>
+
+        <div id="kerjasamaExportMsg" class="error-msg" style="display:none; margin-bottom: 1rem;"></div>
+        <div class="table-wrapper" id="kerjasamaTable">
+          <div class="loading-spinner"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW PERPANJANGAN ===== -->
+    <div id="extendView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <h2>🔄 Perpanjangan Sewa</h2>
+        <div class="sub">Perbarui periode waktu dan nilai kontrak sewa</div>
+        <div class="search-section">
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 0 0 auto; width: 250px;">
+              <label>Terminal ID</label>
+              <input type="text" id="searchTerminalId" placeholder="Cari ID Terminal...">
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <button id="searchBtn" style="width: auto;">🔍 Cari Data</button>
+            </div>
+          </div>
+        </div>
+        <div id="extendDetailForm" style="display:none;"></div>
+        <div id="extendMsg" class="error-msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW EDIT/DELETE SEWA ===== -->
+    <div id="editDeleteSewaView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <h2>✏️ Edit/Delete Data Sewa</h2>
+        <div class="sub">Koreksi informasi data aset ATM / CRM</div>
+        <div class="search-section">
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 0 0 auto; width: 250px;">
+              <label>Terminal ID</label>
+              <input type="text" id="editSearchTerminalId" placeholder="Cari ID Terminal...">
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <button id="editSearchBtn" style="width: auto;">🔍 Cari Data</button>
+            </div>
+          </div>
+        </div>
+        <div id="editDetailForm" style="display:none;"></div>
+        <div id="editMsg" class="error-msg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW TAMBAH SEWA ===== -->
+    <div id="tambahSewaView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <h2>➕ Tambah Data Sewa Baru</h2>
+        <div class="sub">Registrasi entri kontrak sewa baru ke database</div>
+
+        <div id="addStep1" class="search-section" style="margin-bottom: 1.5rem;">
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 0 0 auto; width: 300px;">
+              <label>Terminal ID *</label>
+              <input type="text" id="addCheckTerminalId" placeholder="Masukkan Terminal ID...">
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <button id="addCheckBtn" style="width: auto;">🔍 Cek Terminal ID</button>
+            </div>
+          </div>
+          <div id="addCheckMsg" class="error-msg" style="display:none;"></div>
+        </div>
+
+        <div id="addStep2" style="display:none;">
+          <div id="addFormContainer"></div>
+          <div id="addMsg" class="error-msg" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== VIEW GANTI TERMINAL ID ===== -->
+    <div id="gantiTidView" class="container-fluid py-2 d-none">
+      <div class="glass-card">
+        <h2>🔄 Ganti Terminal ID</h2>
+        <div class="sub">Ubah ID Terminal untuk data yang sudah terdaftar</div>
+
+        <div class="search-section" style="margin-top: 1.5rem;">
+          <div class="form-row" style="align-items: flex-end;">
+            <div class="form-group" style="flex: 0 0 auto; width: 250px;">
+              <label>Terminal ID Saat Ini</label>
+              <input type="text" id="changeSearchTerminalId" placeholder="Cari ID Terminal...">
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <button id="changeSearchBtn" style="width: auto;">🔍 Cari Data</button>
+            </div>
+          </div>
+        </div>
+        <div id="changeTerminalDetailForm" style="display:none;"></div>
+        <div id="changeTerminalMsg" class="error-msg" style="display:none;"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ================================================================ -->
+<!-- VIEW SURVEY (di luar appShell, fullscreen)                       -->
+<!-- ================================================================ -->
+<div id="surveyView" class="container survey-container d-none py-3 px-2 px-md-3">
+
+  <!-- HEADER & KONTROL ATAS -->
+  <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+    <span class="fw-bold text-secondary text-uppercase" style="font-size: 0.75rem;">
+      <i class="fas fa-clipboard-question me-1 text-primary"></i> Form Survey Premises
+    </span>
+    <div class="d-flex gap-1">
+      <button id="flowPrevBtn" onclick="flowPrev()"
+              class="btn btn-warning btn-sm text-dark px-2 py-1 fw-bold"
+              style="font-size: 0.75rem;" disabled>
+        <i class="fas fa-arrow-left"></i> <span class="d-none d-sm-inline">Kembali</span>
+      </button>
+      <button onclick="flowReset()"
+              class="btn btn-secondary btn-sm px-2 py-1"
+              style="font-size: 0.75rem;" title="Reset Survey">
+        <i class="fas fa-undo"></i> <span class="d-none d-sm-inline">Reset</span>
+      </button>
+      <button onclick="showLandingPage()"
+              class="btn btn-outline-secondary btn-sm px-2 py-1"
+              style="font-size: 0.75rem;" title="Kembali ke Menu">
+        <i class="fas fa-home"></i> <span class="d-none d-sm-inline">Menu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- PROGRESS BAR -->
+  <div class="d-flex justify-content-center mb-3">
+    <div style="max-width: 700px; width: 100%;">
+      <div class="p-2 bg-white rounded shadow-sm border">
+        <div class="d-flex justify-content-between align-items-center mb-1 text-secondary" style="font-size: 0.75rem;">
+          <span class="fw-bold"><i class="fas fa-tasks me-1"></i> Progress Pengisian</span>
+          <span id="progressBarText" class="fw-bold text-primary">0%</span>
+        </div>
+        <div class="progress" style="height: 8px; border-radius: 4px; background-color: #e9ecef;">
+          <div id="surveyProgressBar"
+               class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+               role="progressbar"
+               style="width: 0%; transition: width 0.3s ease;"
+               aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WADAH KUESIONER -->
+  <div class="d-flex justify-content-center">
+    <div id="flowContainer" class="glass-card" style="max-width: 700px; width: 100%;">
+      <div class="text-center py-4">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2 text-muted">Memuat Kuesioner...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MESSAGE CONTAINER -->
+  <div id="flowMessage" class="mt-4 text-center fw-bold fs-5"></div>
+
+</div>
+<!-- ================================================================ -->
+<!-- LANDING PAGE (di luar appShell)                                  -->
+<!-- ================================================================ -->
+<div id="landingPage" class="container-fluid" style="padding: 2rem 1rem;">
+
+  <div style="max-width: 900px; margin: 0 auto;">
+
+    <!-- ============================================================ -->
+    <!-- BARIS 1: JUDUL (PALING ATAS)                                 -->
+    <!-- ============================================================ -->
+    <div class="text-center mb-4">
+      <i class="fas fa-building-columns text-primary" style="font-size: 4rem;"></i>
+      <h1 class="fw-bold mt-3 mb-1" style="color: #1a3a6a; font-size: clamp(2rem, 5vw, 2.8rem);">
+        Monitoring Terpadu
+      </h1>
+      <p class="text-muted fs-5 mb-0">Survey Infrastruktur & Sewa ATM/CRM</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- BARIS 2: TOMBOL                                              -->
+    <!-- ============================================================ -->
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <button class="btn btn-lg w-100 py-4 shadow-lg fw-bold text-white"
+                onclick="switchView('survey')"
+                style="border-radius: 16px; background: linear-gradient(135deg, #1a3a6a, #0d2247); font-size: 1.2rem;">
+          <i class="fas fa-clipboard-check fa-2x mb-2 d-block"></i>
+          Mulai Survey Premises
+        </button>
+      </div>
+      <div class="col-md-6 col-lg-5">
+        <button class="btn btn-lg w-100 py-4 shadow-lg fw-bold"
+                onclick="openLoginModal()"
+                style="border-radius: 16px; background: linear-gradient(135deg, #ffffff, #f0fdf4); color: #166534; border: 2px solid #22c55e; font-size: 1.2rem;">
+          <i class="fas fa-user-shield fa-2x mb-2 d-block"></i>
+          Login Monitoring
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- BARIS 3: FOOTER NOTE                                         -->
+    <!-- ============================================================ -->
+    <p class="text-muted small mt-4 mb-0 text-center">
+      <i class="fas fa-lock me-1"></i> Data kunjungan & monitoring terproteksi
+    </p>
+
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL USER LOGIN VENDOR                                          -->
+<!-- ================================================================ -->
+<div class="modal fade" id="loginModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title"><i class="fas fa-user-lock me-2"></i>Login</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted small">Username :</label>
+          <input type="text" id="loginVendorSelect" class="form-control py-2"
+                 placeholder="Masukkan username..." autocomplete="off"
+                 onkeypress="handleUsernameKeyPress(event)">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted small">Password :</label>
+          <input type="password" id="loginPasswordInput" class="form-control py-2"
+                 placeholder="Masukkan password..." onkeypress="handleLoginKeyPress(event)">
+        </div>
+        <button type="button" class="btn btn-primary w-100 py-2 fw-bold mt-2" onclick="processVendorLogin()">
+          <i class="fas fa-sign-in-alt me-1"></i> Login
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL GANTI PASSWORD                                             -->
+<!-- ================================================================ -->
+<div class="modal fade" id="changePasswordModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold"><i class="fas fa-key me-2"></i>Ganti Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted small">Password Lama:</label>
+          <input type="password" id="oldPasswordInput" class="form-control py-2" placeholder="Masukkan password lama...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted small">Password Baru:</label>
+          <input type="password" id="newPasswordInput" class="form-control py-2" placeholder="Masukkan password baru...">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold text-muted small">Konfirmasi Password Baru:</label>
+          <input type="password" id="confirmPasswordInput" class="form-control py-2" placeholder="Ketik ulang password baru...">
+        </div>
+        <button class="btn btn-warning w-100 py-2 fw-bold text-dark mt-2" onclick="processChangePassword()">
+          <i class="fas fa-save me-1"></i> Simpan Password Baru
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL PREVIEW FOTO                                               -->
+<!-- ================================================================ -->
+<div class="modal fade" id="photoPreviewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 96vw; width: 96vw;">
+    <div class="modal-content" style="height: 95vh;">
+      <div class="modal-header bg-dark text-white py-2">
+        <h5 class="modal-title text-truncate fs-6" id="photoPreviewTitle">
+          <i class="fas fa-image me-2"></i>Pratinjau Foto
+        </h5>
+        <div class="ms-auto d-flex gap-2 align-items-center">
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="zoomOutPhoto()" title="Zoom Out">
+            <i class="fas fa-search-minus"></i>
+          </button>
+          <span id="zoomLevelLabel" class="text-white small fw-bold" style="min-width: 50px; text-align: center;">100%</span>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="zoomInPhoto()" title="Zoom In">
+            <i class="fas fa-search-plus"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="resetZoomPhoto()" title="Reset">
+            <i class="fas fa-redo"></i>
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-warning" onclick="toggleFullscreenPhoto()" title="Fullscreen" id="fsToggleBtn">
+            <i class="fas fa-expand"></i>
+          </button>
+          <button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+      </div>
+      <div class="modal-body bg-dark p-0 position-relative d-flex align-items-center justify-content-center"
+           style="overflow: hidden; cursor: grab;" id="photoZoomContainer">
+        <img id="photoPreviewImg" src="" draggable="false"
+             style="max-width: 100%; max-height: 100%; width: auto; height: auto; transition: transform 0.1s ease-out; transform-origin: center center; user-select: none; -webkit-user-drag: none;"
+             alt="Pratinjau Foto Laporan">
+        <div class="position-absolute bottom-0 start-50 translate-middle-x mb-2 px-3 py-1 bg-dark bg-opacity-75 text-white small rounded"
+             id="zoomHint" style="pointer-events: none;">
+          <i class="fas fa-info-circle me-1"></i> Scroll / pinch untuk zoom · Drag untuk geser
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- MODAL EDIT KELOLAAN                                              -->
+<!-- ================================================================ -->
+<div class="modal fade" id="editKelolaanModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold"><i class="fas fa-pen-to-square me-2"></i>Edit Data Kelolaan</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="editKelolaanId">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Terminal ID:</label>
+            <input type="text" id="editTerminalId" class="form-control" readonly>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Regional Office:</label>
+            <select id="editRo" class="form-select" onchange="onEditRoChange()">
+              <option value="">-- Pilih Regional Office --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">RO:
+              <small class="text-muted fw-normal">(otomatis dari Regional Office)</small>
+            </label>
+            <input type="text" id="editRoCode" class="form-control bg-light" readonly placeholder="Otomatis terisi...">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">KC Supervisi:</label>
+            <select id="editKcSupervisi" class="form-select" onchange="onEditKcChange()">
+              <option value="">-- Pilih KC Supervisi --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">BO:
+              <small class="text-muted fw-normal">(otomatis dari KC)</small>
+            </label>
+            <input type="text" id="editBo" class="form-control bg-light" readonly placeholder="Otomatis terisi...">
+          </div>
+          <div class="col-md-12">
+            <label class="form-label fw-bold text-muted small">Lokasi:</label>
+            <input type="text" id="editLokasi" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Jenis e-Channel:</label>
+            <select id="editJenisEch" class="form-select">
+              <option value="ATM">ATM</option>
+              <option value="CRM">CRM</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Status e-Channel:</label>
+            <select id="editStatusEch" class="form-select">
+              <option value="ONSITE">ONSITE</option>
+              <option value="OFFSITE">OFFSITE</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">Kelolaan:</label>
+            <select id="editKelolaan" class="form-select" onchange="onEditKelolaanChange()">
+              <option value="">-- Pilih Kelolaan --</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label fw-bold text-muted small">KL/CRO:</label>
+            <select id="editKlCro" class="form-select">
+              <option value="">-- Pilih KL/CRO --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger fw-bold" onclick="deleteKelolaanData()">
+          <i class="fas fa-trash me-1"></i> Hapus
+        </button>
+        <button class="btn btn-secondary fw-bold text-white" data-bs-dismiss="modal">Batal</button>
+        <button class="btn btn-warning fw-bold text-white" onclick="saveKelolaanData()">
+          <i class="fas fa-save me-1"></i> Simpan
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- CUSTOM MODAL OVERLAY                                             -->
+<!-- ================================================================ -->
+<div id="customModalOverlay" style="display:none;">
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box" id="modalBox">
+      <div class="modal-icon" id="modalIcon">⚠️</div>
+      <h3 id="modalTitle">Konfirmasi</h3>
+      <div class="modal-body" id="modalBody">
+        <p id="modalMessage">Apakah Anda yakin?</p>
+      </div>
+      <div class="modal-footer" id="modalFooter"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ================================================================ -->
+<!-- TOAST & LOADING                                                  -->
+<!-- ================================================================ -->
+<div id="toastContainer" class="toast-container"></div>
+
+<div id="loadingOverlay" class="loading-overlay">
+  <div class="text-center text-white">
+    <div class="spinner-border text-light mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+    <h5 id="loadingText" class="fw-normal">Memproses data...</h5>
+  </div>
+</div>
+
+<div id="fullPageLoader"
+     style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(15,23,42,0.7); backdrop-filter:blur(8px); z-index:10000; justify-content:center; align-items:center; flex-direction:column;">
+  <div style="background:white; padding:2.5rem 3rem; border-radius:24px; text-align:center; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+    <div style="width:60px; height:60px; border:5px solid #e2e8f0; border-top:5px solid #2563eb; border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 1.5rem;"></div>
+    <h3 style="color:#0f172a; margin-bottom:0.5rem;">Memuat Data...</h3>
+    <p style="color:#64748b;">Mohon tunggu, sedang mengambil data dari server</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?!= include('Javascript'); ?>
+</body>
+</html>
